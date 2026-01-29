@@ -1,0 +1,40 @@
+name: Daily Email Pipeline
+
+
+on:
+  workflow_dispatch:
+  schedule:
+    # “At 22:45 on every day-of-week.”
+    - cron: "0 23 * * *"
+
+jobs:
+  run_pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Set environment variables
+        run: |
+          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> $GITHUB_ENV
+          echo "EMAIL_USER=${{ secrets.EMAIL_USER }}" >> $GITHUB_ENV
+          echo "EMAIL_PASS=${{ secrets.EMAIL_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: get events from RA
+        run: python update_events.py
+        
+      - name: Generate email events
+        run: python generate_email_events.py
+
+      - name: Send email events
+        run: python send_email_events.py
