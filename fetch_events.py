@@ -15,7 +15,7 @@ def fetch_all_berlin_events():
     """Fetch all events in Berlin for the next year"""
     events = []
     start_date = datetime.today()
-    end_date = start_date + timedelta(days=60)  # for testing, limit to 1 week
+    end_date = start_date + timedelta(days=120)  # for testing, limit to 1 week
     current_date = start_date
 
     while current_date <= end_date:
