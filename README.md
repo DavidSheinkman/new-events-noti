@@ -111,3 +111,69 @@ Secrets required:
 - Logging and monitoring
 - Deploy Next.js frontend to Vercel
 
+
+## Architecture Diagram
+
+        RA API
+           ↓
+   update_events.py
+           ↓
+        MongoDB
+           ↓
+ generate_email_events.py
+           ↓
+     emailevents
+           ↓
+   send_email_events.py
+           ↓
+        Email
+           ↓
+         User
+
+
+## 🚀 Future Improvements
+
+This project is currently implemented as a functional MVP (Minimum Viable Product).  
+Below is a structured roadmap for future improvements.
+
+---
+
+### 🎨 Frontend Improvements
+
+#### 1. Improved UI / UX
+- Redesign the UI with a more modern and polished layout
+- Mobile responsiveness
+- Add better loading states and user feedback
+- Improve artist search and selection experience
+
+#### 2. Authentication System (Login / Signup)
+- Implement secure user authentication
+- Add user registration and login functionality
+- Add password reset functionality
+
+---
+
+### ⚙ Backend Improvements
+
+#### 3. Database Maintenance & Cleanup
+- Automatically remove artists from the global `artists` collection if:
+  - No users are subscribed to them
+  - They have no upcoming events
+- Add a scheduled cleanup job
+
+#### 4. Production-Grade Email Service
+Currently, emails are sent using a personal Gmail SMTP account.
+
+Planned improvement:
+- Replace Gmail with a dedicated transactional email provider such as:
+  - SendGrid
+  - Mailgun
+  - Amazon SES
+  - Resend
+
+Benefits:
+- Prevent account suspension
+
+
+
+
