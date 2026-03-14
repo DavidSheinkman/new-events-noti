@@ -24,7 +24,7 @@ Start: {event['startTime']}
 Venue: {event['venue']['name']}
 
 Link:
-https://ra.co/events/{event['contentUrl']}
+https://ra.co{event['contentUrl']}
 """
 
     msg.set_content(body)
