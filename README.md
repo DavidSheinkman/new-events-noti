@@ -1,179 +1,150 @@
-# RA Artist Event Notifier
+# RA Artist Event Notifier — Backend
 
-A full-stack system that monitors Berlin events from RA.co and sends email notifications to users when their favorite artists have new events.
-
-## Features
-
-- Fetches Berlin events from RA (GraphQL API)
-- Tracks favorite artists per user
-- Detects new events automatically
-- Queues notifications
-- Sends email alerts
-- Runs daily via GitHub Actions
-
-## Architecture
-
-RA.co → update_events.py  
-          ↓
-      newevents (MongoDB)
-          ↓
-generate_email_events.py
-          ↓
-      emailevents (MongoDB)
-          ↓
-send_email_events.py
-          ↓
-        Email → User
-
+A Python pipeline that monitors Berlin events from RA.co and sends email notifications to users when their followed artists have new upcoming events.
 
 ---
 
-# 3️⃣ Database Schema
+## How It Works
 
-Very important for clarity.
+```
+RA.co GraphQL API
+       ↓
+update_events.py        — fetches Berlin events, detects new ones
+       ↓
+  MongoDB (artists, newevents)
+       ↓
+generate_email_events.py — matches new events to subscribed users
+       ↓
+  MongoDB (emailevents)
+       ↓
+send_email_events.py    — sends emails and clears processed jobs
+       ↓
+     User Inbox
+```
 
-```markdown
-## Database Collections
+The pipeline runs daily at **07:00 UTC** via GitHub Actions.
 
-### users
+---
+
+## Pipeline Steps
+
+### 1. `update_events.py`
+
+Calls `fetch_events.py` to pull all Berlin events from the RA.co GraphQL API for the next 360 days (one day at a time to avoid pagination limits).
+
+For each artist in the `artists` collection it checks whether any of the fetched events feature that artist. New events — ones not already stored in the artist's record — are added to both:
+- `artists` collection (permanent history)
+- `newevents` collection (pending notifications queue)
+
+---
+
+### 2. `generate_email_events.py`
+
+Reads all documents from `newevents` and matches them against the `users` collection. For every user who follows a given artist, an email job is inserted into the `emailevents` collection. Once all users have been matched for a given event, that event is removed from `newevents`.
+
+---
+
+### 3. `send_email_events.py`
+
+Reads all documents from `emailevents`, sends each one as a plain-text email via Gmail SMTP, and deletes the document on success. Failed sends are logged but not deleted, so they can be retried on the next run.
+
+---
+
+## Database Schema
+
+### `users`
+```json
 {
-  email: string,
-  artists: string[]
+  "email": "string",
+  "artists": ["string"]
 }
+```
 
-### artists
+### `artists`
+```json
 {
-  name: string,
-  events: Event[]
+  "name": "string",
+  "events": ["Event"]
 }
+```
 
-### newevents
+### `newevents`
+```json
 {
-  artist: string,
-  events: Event[]
+  "artist": "string",
+  "events": ["Event"]
 }
+```
 
-### emailevents
+### `emailevents`
+```json
 {
-  email: string,
-  artist: string,
-  event: Event,
-  createdAt: Date
+  "email": "string",
+  "artist": "string",
+  "event": "Event",
+  "createdAt": "Date"
 }
+```
 
-## Daily Pipeline
-
-### 1. update_events.py
-Fetches Berlin events and updates the `artists` and `newevents` collections.
-
-### 2. generate_email_events.py
-Matches users to new events and creates email jobs in `emailevents`.
-
-### 3. send_email_events.py
-Sends emails and deletes processed email jobs.
+---
 
 ## Local Setup
 
 1. Install Python 3.11+
+
 2. Install dependencies:
+   ```bash
    pip install -r requirements.txt
+   ```
 
-3. Create `.env` file:
+3. Create a `.env` file:
+   ```env
+   MONGODB_URI=your_mongodb_connection_string
+   EMAIL_USER=your_gmail_address
+   EMAIL_PASS=your_gmail_app_password
+   ```
 
-MONGODB_URI=...
-EMAIL_USER=...
-EMAIL_PASS=...
-
-4. Run manually:
+4. Run the pipeline manually:
+   ```bash
    python update_events.py
    python generate_email_events.py
    python send_email_events.py
+   ```
+
+---
 
 ## Automated Daily Run
 
-The pipeline runs daily at 07:00 UTC via GitHub Actions.
+The pipeline is triggered every day at 07:00 UTC by a GitHub Actions workflow.
 
-Workflow file:
-.github/workflows/pipeline.yml
+**Workflow file:** `.github/workflows/pipeline.yml`
 
-Secrets required:
-- MONGODB_URI
-- EMAIL_USER
-- EMAIL_PASSWORD
+**Required secrets:**
 
-## Future Improvements
+| Secret | Description |
+|---|---|
+| `MONGODB_URI` | MongoDB connection string |
+| `EMAIL_USER` | Gmail address used to send emails |
+| `EMAIL_PASSWORD` | Gmail App Password (not your account password) |
 
-- HTML email templates
-- Daily digest mode
-- Rate limiting
-- Email retry logic
-- Admin dashboard
-- Logging and monitoring
+---
+
+## Roadmap
+
+### Frontend
+- Redesign UI with modern layout and mobile responsiveness
+- User authentication — login, signup, password reset
+- Better loading states and artist search experience
+
+### Backend
+- Replace Gmail SMTP with a transactional email provider (SendGrid, Mailgun, or Resend) to avoid account suspension and improve deliverability
+- Scheduled cleanup job to remove artists from the global `artists` collection when no users follow them and they have no upcoming events
+- HTML email templates for richer notifications
+- Daily digest mode — batch all new events into a single email per user per day
+- Email retry logic for failed sends
+- Structured logging and monitoring (e.g. Sentry, Datadog)
+
+### Infrastructure
 - Deploy Next.js frontend to Vercel
-
-
-## Architecture Diagram
-
-        RA API
-           ↓
-   update_events.py
-           ↓
-        MongoDB
-           ↓
- generate_email_events.py
-           ↓
-     emailevents
-           ↓
-   send_email_events.py
-           ↓
-        Email
-           ↓
-         User
-
-
-## 🚀 Future Improvements
-
-This project is currently implemented as a functional MVP (Minimum Viable Product).  
-Below is a structured roadmap for future improvements.
-
----
-
-### 🎨 Frontend Improvements
-
-#### 1. Improved UI / UX
-- Redesign the UI with a more modern and polished layout
-- Mobile responsiveness
-- Add better loading states and user feedback
-- Improve artist search and selection experience
-
-#### 2. Authentication System (Login / Signup)
-- Implement secure user authentication
-- Add user registration and login functionality
-- Add password reset functionality
-
----
-
-### ⚙ Backend Improvements
-
-#### 3. Database Maintenance & Cleanup
-- Automatically remove artists from the global `artists` collection if:
-  - No users are subscribed to them
-  - They have no upcoming events
-- Add a scheduled cleanup job
-
-#### 4. Production-Grade Email Service
-Currently, emails are sent using a personal Gmail SMTP account.
-
-Planned improvement:
-- Replace Gmail with a dedicated transactional email provider such as:
-  - SendGrid
-  - Mailgun
-  - Amazon SES
-  - Resend
-
-Benefits:
-- Prevent account suspension
-
-
-
-
+- Rate limiting on RA.co API requests
+- Admin dashboard for monitoring pipeline runs
