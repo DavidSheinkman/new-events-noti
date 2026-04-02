@@ -19,8 +19,7 @@ New event found!
 
 Artist: {artist}
 Event: {event['title']}
-Date: {event['date']}
-Start: {event['startTime']}
+Date: {event['date'].split('T')[0]}
 Venue: {event['venue']['name']}
 
 Link:
