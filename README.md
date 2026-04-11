@@ -4,6 +4,24 @@ A Python pipeline that monitors Berlin events from RA.co and sends email notific
 
 ---
 
+## Why This Exists
+
+Keeping up with your favourite DJs shouldn't be a daily chore. This notifier solves three real problems:
+
+- **Buy tickets while they're cheap.** New events often go on sale at their lowest price. Being notified on release day means you can grab tickets before demand drives prices up — or before they sell out entirely.
+- **Plan ahead with confidence.** Knowing about an event weeks or months in advance gives you time to coordinate with friends, book time off work, and actually make it happen — instead of finding out three days before and scrambling.
+- **No more manual checking.** Instead of visiting RA every day across a dozen artists, you get a single email the moment something new is announced. Your inbox becomes your event radar.
+
+---
+
+## Example Notification
+
+Here's what a notification email looks like when one of your followed artists announces a new event:
+
+![Email notification example](https://i.imgur.com/v2NIySf.png)
+
+---
+
 ## How It Works
 
 ```
